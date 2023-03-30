@@ -52,7 +52,7 @@ describe("Liquidation - Test02", function () {
     }));
 
     const profit = afterLiquidationBalance.sub(beforeLiquidationBalance);
-    console.log("Profit", utils.formatEther(profit), "ETH");
+    console.log("\nProfit", utils.formatEther(profit), "ETH\n");
 
     expect(profit.gt(BigNumber.from(0)), "not profitable").to.be.true;
     // writeFile('profit.txt', String(utils.formatEther(profit)), function (err) { console.log("failed to write profit.txt: %s", err) });

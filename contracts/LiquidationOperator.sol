@@ -199,7 +199,7 @@ contract LiquidationOperator is IUniswapV2Callee {
         //    *** Your code here ***
         (, , , , , uint256 healthFactor) = lendingPool.getUserAccountData(liquidationTarget);
 
-        console.log("\tHealth factor: %s", healthFactor);
+        console.log("\n\tHealth factor: %s", healthFactor);
 
         require(healthFactor < (10 ** healthFactorDecimals), "Health factor of total loans must be below 1");
 
@@ -211,7 +211,7 @@ contract LiquidationOperator is IUniswapV2Callee {
         //    *** Your code here ***
         bytes memory data = abi.encode(liquidationTarget, debtAsset, collateralAsset);
         IUniswapV2Pair pair = IUniswapV2Pair(uniswapV2Factory.getPair(debtAsset, address(WETH)));
-        console.log("\tPair address: %s", address(pair));
+        console.log("\tPair address: %s\n", address(pair));
         if (pair.token0() == debtAsset) {
             pair.swap(debtAmount, 0, address(this), data);
         } else {
@@ -253,17 +253,17 @@ contract LiquidationOperator is IUniswapV2Callee {
         }
         IERC20(debtAsset).approve(address(lendingPool), debtToCover);
         console.log(
-            "\tData: \n\tCollateral: %s\n\tDebt: %s\n\tLiquidation target: %s",
+            "\tCollateral: %s\n\tDebt: %s\n\tLiquidation target: %s",
             collateralAsset,
             debtAsset,
             liquidationTarget
         );
-        console.log("\tDebt to cover: %s", debtToCover);
+        console.log("\tDebt to cover: %s\n", debtToCover);
         console.log("\tBalance collateral asset (before): %s", IERC20(collateralAsset).balanceOf(address(this)));
         console.log("\tBalance debt asset (before): %s", IERC20(debtAsset).balanceOf(address(this)));
         lendingPool.liquidationCall(collateralAsset, debtAsset, liquidationTarget, debtToCover, false);
         console.log("\tBalance collateral asset (after): %s", IERC20(collateralAsset).balanceOf(address(this)));
-        console.log("\tBalance debt asset (after): %s", IERC20(debtAsset).balanceOf(address(this)));
+        console.log("\tBalance debt asset (after): %s\n", IERC20(debtAsset).balanceOf(address(this)));
 
         // 2.2 swap WBTC for other things or repay directly
         //    *** Your code here ***
