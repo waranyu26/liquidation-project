@@ -41,7 +41,7 @@ describe("Liquidation - Test02", function () {
       v => v && v.topics && v.address === '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9' && Array.isArray(v.topics) &&
         v.topics.length > 3 && v.topics[0] === '0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286')
 
-    const expectedLiquidationEvents = liquidationReceipt.logs.filter(v => v.topics[3] === '0x000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2');
+    const expectedLiquidationEvents = liquidationReceipt.logs.filter(v => v.topics[3] === '0x00000000000000000000000063f6037d3e9d51ad865056bf7792029803b6eefd');
 
     expect(expectedLiquidationEvents.length, "no expected liquidation").to.be.above(0);
     expect(liquidationEvents.length, "unexpected liquidation").to.be.equal(expectedLiquidationEvents.length);
