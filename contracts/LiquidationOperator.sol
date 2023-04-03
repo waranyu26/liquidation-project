@@ -188,10 +188,10 @@ contract LiquidationOperator is IUniswapV2Callee {
         address liquidationTarget,
         address debtAsset,
         address collateralAsset,
-        uint256 debtAmount
+        uint256 debtAmount,
+        bool useETHPair
     ) external {
         // TODO: implement your liquidation logic
-
         // 0. security checks and initializing variables
         //    *** Your code here ***
 
@@ -209,8 +209,13 @@ contract LiquidationOperator is IUniswapV2Callee {
         // we should borrow USDT, liquidate the target user and get the WBTC, then swap WBTC to repay uniswap
         // (please feel free to develop other workflows as long as they liquidate the target user successfully)
         //    *** Your code here ***
-        bytes memory data = abi.encode(liquidationTarget, debtAsset, collateralAsset);
-        IUniswapV2Pair pair = IUniswapV2Pair(uniswapV2Factory.getPair(debtAsset, address(WETH)));
+        bytes memory data = abi.encode(liquidationTarget, debtAsset, collateralAsset, useETHPair);
+        IUniswapV2Pair pair;
+        if (useETHPair) {
+            pair = IUniswapV2Pair(uniswapV2Factory.getPair(debtAsset, address(WETH)));
+        } else {
+            pair = IUniswapV2Pair(uniswapV2Factory.getPair(debtAsset, collateralAsset));
+        }
         console.log("\tPair address: %s\n", address(pair));
         if (pair.token0() == debtAsset) {
             pair.swap(debtAmount, 0, address(this), data);
@@ -220,6 +225,18 @@ contract LiquidationOperator is IUniswapV2Callee {
 
         // 3. Convert the profit into ETH and send back to sender
         //    *** Your code here ***
+        if (!useETHPair) {
+            // convert left collateral to ETH
+            uint256 collateralAmount = IERC20(collateralAsset).balanceOf(address(this));
+
+            IUniswapV2Pair pair1 = IUniswapV2Pair(uniswapV2Factory.getPair(collateralAsset, address(WETH)));
+                (uint256 token0Pool1Reserve, uint256 token1Pool1Reserve, ) = pair1.getReserves();
+
+            IERC20(collateralAsset).transfer(address(pair1), collateralAmount);
+            uint256 amountOut = getAmountOut(collateralAmount, token0Pool1Reserve, token1Pool1Reserve);
+            pair1.swap(0, amountOut, address(this), "");
+        }
+
         uint256 balance = WETH.balanceOf(address(this));
         WETH.withdraw(balance);
         payable(msg.sender).transfer(address(this).balance);
@@ -238,9 +255,9 @@ contract LiquidationOperator is IUniswapV2Callee {
         address token1 = IUniswapV2Pair(msg.sender).token1(); // fetch the address of token1
         require(msg.sender == uniswapV2Factory.getPair(token0, token1), "Sender must be V2 pair"); // ensure that msg.sender is a V2 pair
 
-        (address liquidationTarget, address debtAsset, address collateralAsset) = abi.decode(
+        (address liquidationTarget, address debtAsset, address collateralAsset, bool useETHPair) = abi.decode(
             data,
-            (address, address, address)
+            (address, address, address, bool)
         );
 
         // 2.1 liquidate the target user
@@ -267,7 +284,7 @@ contract LiquidationOperator is IUniswapV2Callee {
 
         // 2.2 swap WBTC for other things or repay directly
         //    *** Your code here ***
-        if (collateralAsset != address(WETH)) {
+        if (useETHPair && collateralAsset != address(WETH)) {
             IUniswapV2Pair pair1 = IUniswapV2Pair(uniswapV2Factory.getPair(collateralAsset, address(WETH)));
             (uint256 token0Pool1Reserve, uint256 token1Pool1Reserve, ) = pair1.getReserves();
 
@@ -280,7 +297,12 @@ contract LiquidationOperator is IUniswapV2Callee {
 
         // 2.3 repay
         //    *** Your code here ***
-        IUniswapV2Pair pair0 = IUniswapV2Pair(uniswapV2Factory.getPair(debtAsset, address(WETH)));
+        IUniswapV2Pair pair0;
+        if (useETHPair) {
+            pair0 = IUniswapV2Pair(uniswapV2Factory.getPair(debtAsset, address(WETH)));
+        } else {
+            pair0 = IUniswapV2Pair(uniswapV2Factory.getPair(debtAsset, collateralAsset));
+        }
         (uint256 token0Pool0Reserve, uint256 token1Pool0Reserve, ) = pair0.getReserves();
 
         uint256 repayAmount;
@@ -289,8 +311,16 @@ contract LiquidationOperator is IUniswapV2Callee {
         } else {
             repayAmount = getAmountIn(debtToCover, token0Pool0Reserve, token1Pool0Reserve);
         }
-        console.log("\tRepay amount: %s", repayAmount);
-        WETH.transfer(address(pair0), repayAmount);
+        console.log("\tRepay amount: %s\n", repayAmount);
+
+
+        if (useETHPair) {
+            uint256 wethBalance = WETH.balanceOf(address(this));
+            WETH.transfer(address(pair0), repayAmount < wethBalance ? repayAmount : wethBalance);
+        } else {
+            uint256 collateralBalance = IERC20(collateralAsset).balanceOf(address(this));
+            IERC20(collateralAsset).transfer(address(pair0), repayAmount < collateralBalance ? repayAmount : collateralBalance);
+        }
         // END TODO
     }
 }

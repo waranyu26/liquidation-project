@@ -3,7 +3,13 @@ const { network, ethers } = require("hardhat");
 const { BigNumber, utils } = require("ethers");
 const { writeFile } = require('fs');
 
-describe("Liquidation - Test02", function () {
+describe("Liquidation - with USDC/WETH", function () {
+  const liquidationTarget = "0x63f6037d3e9d51ad865056BF7792029803b6eEfD";
+  const debtAsset = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
+  const collateralAsset = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // WETH
+  const useETHPair = true; // use USDC/WETH pair
+  const debtAmount = "8128956343";
+
   it("test", async function () {
     await network.provider.request({
       method: "hardhat_reset",
@@ -29,12 +35,7 @@ describe("Liquidation - Test02", function () {
     const liquidationOperator = await LiquidationOperator.deploy(overrides = { gasPrice: gasPrice });
     await liquidationOperator.deployed();
 
-    const liquidationTarget = "0x63f6037d3e9d51ad865056BF7792029803b6eEfD";
-    const debtAsset = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
-    const collateralAsset = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // WETH
-    const debtAmount = "8128956343";
-
-    const liquidationTx = await liquidationOperator.operate(liquidationTarget, debtAsset, collateralAsset, debtAmount, overrides = { gasPrice: gasPrice });
+    const liquidationTx = await liquidationOperator.operate(liquidationTarget, debtAsset, collateralAsset, debtAmount, useETHPair, overrides = { gasPrice: gasPrice });
     const liquidationReceipt = await liquidationTx.wait();
 
     const liquidationEvents = liquidationReceipt.logs.filter(

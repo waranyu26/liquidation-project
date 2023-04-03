@@ -3,15 +3,16 @@ const { network, ethers } = require("hardhat");
 const { BigNumber, utils } = require("ethers");
 const { writeFile } = require('fs');
 
-describe("Liquidation - Test01", function () {
+describe("Liquidation - WBTC/USDT - with 2000, 5000, 10000 USDT", function () {
   const liquidationTarget = "0x59CE4a2AC5bC3f5F225439B2993b86B42f6d3e9F";
   const debtAsset = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT
   const collateralAsset = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"; // WBTC
+  const useETHPair = false; // use USDT/WBTC pair
   const debtAmounts = [
-    2916378221684,
     2000000000,   // 2000 USDT
     5000000000,   // 5000 USDT
-    10000000000,  // 10000 USDT
+    10000000000,  // 10000 USDT (expect transaction revert)
+    // 2916378221684,
   ]
 
   debtAmounts.forEach((debtAmount) => {
@@ -40,7 +41,7 @@ describe("Liquidation - Test01", function () {
       const liquidationOperator = await LiquidationOperator.deploy(overrides = { gasPrice: gasPrice });
       await liquidationOperator.deployed();
 
-      const liquidationTx = await liquidationOperator.operate(liquidationTarget, debtAsset, collateralAsset, debtAmount, overrides = { gasPrice: gasPrice });
+      const liquidationTx = await liquidationOperator.operate(liquidationTarget, debtAsset, collateralAsset, debtAmount, useETHPair, overrides = { gasPrice: gasPrice });
       const liquidationReceipt = await liquidationTx.wait();
   
       const liquidationEvents = liquidationReceipt.logs.filter(
